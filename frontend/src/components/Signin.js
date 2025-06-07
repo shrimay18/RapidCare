@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { Heart, Mail, Lock } from 'lucide-react';
 import styles from '@/styles/Signin.module.css';
+import { authService } from '../services/authService';
+
 
 export default function Signin() {
   const router = useRouter();
@@ -55,18 +57,31 @@ export default function Signin() {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newErrors = validateForm();
-    
-    if (Object.keys(newErrors).length === 0) {
-      // Form is valid, handle submission
-      console.log('Signin attempted:', formData);
-      alert('Signin successful! (This is just a demo)');
-    } else {
-      setErrors(newErrors);
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  const newErrors = validateForm();
+  
+  if (Object.keys(newErrors).length === 0) {
+    try {
+      const result = await authService.signin({
+        email: formData.email,
+        password: formData.password
+      });
+
+      if (result.success) {
+        alert(`Welcome back, ${result.data.user.name}!`);
+        router.push('/'); // or wherever you want to redirect
+      } else {
+        alert(result.message);
+      }
+    } catch (error) {
+      console.error('Signin error:', error);
+      alert('An unexpected error occurred. Please try again.');
     }
-  };
+  } else {
+    setErrors(newErrors);
+  }
+};
 
   return (
     <div className={styles.container}>

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { Heart, User, Mail, Phone, UserCheck, Lock } from 'lucide-react';
 import styles from '@/styles/Signup.module.css';
+import { authService } from '../services/authService';
+
 
 export default function Signup() {
   const router = useRouter();
@@ -78,18 +80,34 @@ export default function Signup() {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newErrors = validateForm();
-    
-    if (Object.keys(newErrors).length === 0) {
-      // Form is valid, handle submission
-      console.log('Form submitted:', formData);
-      alert('Signup successful! (This is just a demo)');
-    } else {
-      setErrors(newErrors);
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  const newErrors = validateForm();
+  
+  if (Object.keys(newErrors).length === 0) {
+    try {
+      const result = await authService.signup({
+        name: formData.name,
+        email: formData.email,
+        role: formData.role,
+        mobile: formData.mobile || null,
+        password: formData.password
+      });
+
+      if (result.success) {
+        alert(`Welcome ${result.data.user.name}! Account created successfully.`);
+        router.push('/signin');
+      } else {
+        alert(result.message);
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      alert('An unexpected error occurred. Please try again.');
     }
-  };
+  } else {
+    setErrors(newErrors);
+  }
+};
 
   return (
     <div className={styles.container}>
