@@ -1,0 +1,353 @@
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+}
+
+/* Navigation Styles */
+.navbar {
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid #dbeafe;
+}
+
+.navContainer {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.navContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 4rem;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logoIcon {
+  background: #2563eb;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+}
+
+.heartIcon {
+  height: 1.5rem;
+  width: 1.5rem;
+  color: white;
+}
+
+.logoText {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1e3a8a;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+}
+
+.backBtn {
+  color: #2563eb;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.backBtn:hover {
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+/* Signup Section */
+.signupSection {
+  min-height: calc(100vh - 4rem);
+  display: flex;
+  align-items: center;
+  padding: 2rem 1rem;
+}
+
+.signupContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  align-items: center;
+}
+
+/* Slogan Side */
+.sloganSide {
+  padding: 2rem;
+  text-align: center;
+}
+
+.sloganContent {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.slogan {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #1e3a8a;
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
+}
+
+.sloganAccent {
+  color: #2563eb;
+  display: block;
+}
+
+.sloganDescription {
+  font-size: 1.125rem;
+  color: #4b5563;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+.benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.benefit {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1rem;
+  color: #374151;
+}
+
+.benefitIcon {
+  font-size: 1.2rem;
+}
+
+/* Form Side */
+.formSide {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border: 1px solid #dbeafe;
+}
+
+.formContainer {
+  padding: 2rem;
+}
+
+.formTitle {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1e3a8a;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.formSubtitle {
+  color: #6b7280;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.labelIcon {
+  height: 1rem;
+  width: 1rem;
+  color: #6b7280;
+}
+
+.input, .select {
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  transition: all 0.2s;
+  background: white;
+}
+
+.input:focus, .select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.inputError {
+  border-color: #ef4444;
+}
+
+.inputError:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.errorText {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.select {
+  cursor: pointer;
+}
+
+.select option {
+  padding: 0.5rem;
+}
+
+.submitBtn {
+  background: #2563eb;
+  color: white;
+  padding: 0.875rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 1rem;
+}
+
+.submitBtn:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.signInLink {
+  text-align: center;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.signInLink p {
+  color: #6b7280;
+  margin: 0;
+}
+
+.linkBtn {
+  color: #2563eb;
+  font-weight: 500;
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: 0.5rem;
+  text-decoration: underline;
+}
+
+.linkBtn:hover {
+  color: #1d4ed8;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 412px) {
+  .backBtn {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+  }
+  
+  .logoText {
+    font-size: 1.25rem;
+  }
+  
+  .logoIcon {
+    padding: 0.375rem;
+  }
+  
+  .heartIcon {
+    height: 1.25rem;
+    width: 1.25rem;
+  }
+  
+  .slogan {
+    font-size: 1.875rem;
+  }
+  
+  .formContainer {
+    padding: 1.5rem;
+  }
+  
+  .signupSection {
+    padding: 1rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .benefits {
+    flex-direction: row;
+    justify-content: center;
+    gap: 2rem;
+  }
+  
+  .benefit {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .signupContainer {
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+  }
+  
+  .sloganSide {
+    text-align: left;
+  }
+  
+  .benefits {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .benefit {
+    flex-direction: row;
+    text-align: left;
+  }
+  
+  .slogan {
+    font-size: 3rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .signupContainer {
+    max-width: 1000px;
+  }
+  
+  .formContainer {
+    padding: 3rem;
+  }
+}
