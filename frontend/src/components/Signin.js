@@ -57,31 +57,42 @@ export default function Signin() {
     return newErrors;
   };
 
-  const handleSubmit = async (e) => {
-  e.preventDefault();
-  const newErrors = validateForm();
-  
-  if (Object.keys(newErrors).length === 0) {
-    try {
-      const result = await authService.signin({
-        email: formData.email,
-        password: formData.password
-      });
+ const handleSubmit = async (e) => {
+    e.preventDefault();
+    const newErrors = validateForm();
+    
+    if (Object.keys(newErrors).length === 0) {
+      try {
+        const result = await authService.signin({
+          email: formData.email,
+          password: formData.password
+        });
 
-      if (result.success) {
-        alert(`Welcome back, ${result.data.user.name}!`);
-        router.push('/'); // or wherever you want to redirect
-      } else {
-        alert(result.message);
+        if (result.success) {
+          alert(`Welcome back, ${result.data.user.name}!`);
+          
+          // 🔥 ADD THIS PART - Redirect based on user role after signin
+          if (result.data.user.role === 'PATIENT') {
+            router.push('/patient-dashboard');
+          } else if (result.data.user.role === 'DOCTOR') {
+            router.push('/coming-soon?role=doctor');
+          } else if (result.data.user.role === 'ADMIN') {
+            router.push('/coming-soon?role=admin');
+          } else {
+            router.push('/'); // Fallback to home
+          }
+        } else {
+          alert(result.message);
+        }
+      } catch (error) {
+        console.error('Signin error:', error);
+        alert('An unexpected error occurred. Please try again.');
       }
-    } catch (error) {
-      console.error('Signin error:', error);
-      alert('An unexpected error occurred. Please try again.');
+    } else {
+      setErrors(newErrors);
     }
-  } else {
-    setErrors(newErrors);
-  }
-};
+  };
+
 
   return (
     <div className={styles.container}>

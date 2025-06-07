@@ -81,33 +81,42 @@ export default function Signup() {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  const newErrors = validateForm();
-  
-  if (Object.keys(newErrors).length === 0) {
-    try {
-      const result = await authService.signup({
-        name: formData.name,
-        email: formData.email,
-        role: formData.role,
-        mobile: formData.mobile || null,
-        password: formData.password
-      });
+    e.preventDefault();
+    const newErrors = validateForm();
+    
+    if (Object.keys(newErrors).length === 0) {
+      try {
+        const result = await authService.signup({
+          name: formData.name,
+          email: formData.email,
+          role: formData.role,
+          mobile: formData.mobile || null,
+          password: formData.password
+        });
 
-      if (result.success) {
-        alert(`Welcome ${result.data.user.name}! Account created successfully.`);
-        router.push('/signin');
-      } else {
-        alert(result.message);
+        if (result.success) {
+          alert(`Welcome ${result.data.user.name}! Account created successfully.`);
+          
+          if (result.data.user.role === 'PATIENT') {
+            router.push('/patient-dashboard');
+          } else if (result.data.user.role === 'DOCTOR') {
+            router.push('/coming-soon?role=doctor');
+          } else if (result.data.user.role === 'ADMIN') {
+            router.push('/coming-soon?role=admin');
+          } else {
+            router.push('/signin'); // Fallback
+          }
+        } else {
+          alert(result.message);
+        }
+      } catch (error) {
+        console.error('Signup error:', error);
+        alert('An unexpected error occurred. Please try again.');
       }
-    } catch (error) {
-      console.error('Signup error:', error);
-      alert('An unexpected error occurred. Please try again.');
+    } else {
+      setErrors(newErrors);
     }
-  } else {
-    setErrors(newErrors);
-  }
-};
+  };
 
   return (
     <div className={styles.container}>
