@@ -12,12 +12,18 @@ export default function ComingSoon() {
     // Get user data from localStorage
     const userData = localStorage.getItem('user');
     if (userData) {
-      setUser(JSON.parse(userData));
+        try {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        } catch (error) {
+        console.error('Error parsing user data:', error);
+        router.push('/signin');
+        }
     } else {
-      // If no user data, redirect to signin
-      router.push('/signin');
+        // If no user data, redirect to signin
+        router.push('/signin');
     }
-  }, [router]);
+    }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem('user');

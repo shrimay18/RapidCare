@@ -1,14 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Calendar, User, LogOut, Clock, FileText, Star, MapPin, Phone, Mail, Upload, Download, Eye } from 'lucide-react';
+import { useRouter } from 'next/router';
 import '../styles/PatientDashboard.css';
 
 const PatientDashboard = () => {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('history');
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddRecord, setShowAddRecord] = useState(false);
   const [showAddReminder, setShowAddReminder] = useState(false);
   const [showAddReport, setShowAddReport] = useState(false);
-  const [user, setUser] = useState({ name: 'John Doe', email: 'john@example.com' });
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Load user data from localStorage on component mount
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    
+    if (!userData) {
+      // If no user data, redirect to signin
+      router.push('/signin');
+      return;
+    }
+
+    try {
+      const parsedUser = JSON.parse(userData);
+      
+      // Check if user is a patient
+      if (parsedUser.role !== 'PATIENT') {
+        router.push('/coming-soon?role=' + parsedUser.role.toLowerCase());
+        return;
+      }
+
+      setUser(parsedUser);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      router.push('/signin');
+    }
+  }, [router]);
 
   // Dummy data for patient history
   const [patientHistory, setPatientHistory] = useState([
@@ -211,8 +241,31 @@ const PatientDashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
-    window.location.href = '/signin';
+    router.push('/signin');
   };
+
+  // Show loading while checking user authentication
+  if (loading) {
+    return (
+      <div className="dashboard-container">
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh',
+          fontSize: '18px',
+          color: '#6b7280'
+        }}>
+          Loading...
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if no user
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="dashboard-container">
