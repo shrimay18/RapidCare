@@ -3,7 +3,7 @@ import api from '../lib/api';
 export const authService = {
   signup: async (userData) => {
     try {
-      const response = await api.post('/api/auth/signup', userData);
+      const response = await api.post('/api/auth/register', userData);
       
       // Store user data and token after successful signup
       if (response.data.user) {
