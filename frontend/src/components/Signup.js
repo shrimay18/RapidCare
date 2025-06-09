@@ -97,14 +97,12 @@ export default function Signup() {
         if (result.success) {
           alert(`Welcome ${result.data.user.name}! Account created successfully.`);
           
-          if (result.data.user.role === 'PATIENT') {
+          if (result.data.user.role === 'DOCTOR') {
+            router.push('/doctor-profile-setup');
+          } else if (result.data.user.role === 'PATIENT') {
             router.push('/patient-dashboard');
-          } else if (result.data.user.role === 'DOCTOR') {
-            router.push('/coming-soon?role=doctor');
-          } else if (result.data.user.role === 'ADMIN') {
-            router.push('/coming-soon?role=admin');
           } else {
-            router.push('/signin'); // Fallback
+            router.push('/coming-soon?role=admin');
           }
         } else {
           alert(result.message);

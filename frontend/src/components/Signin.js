@@ -72,14 +72,17 @@ export default function Signin() {
           alert(`Welcome back, ${result.data.user.name}!`);
           
           // 🔥 ADD THIS PART - Redirect based on user role after signin
-          if (result.data.user.role === 'PATIENT') {
+          if (result.data.user.role === 'DOCTOR') {
+            // Check if doctor has completed profile setup
+            if (result.data.user.profileComplete) {
+              router.push('/doctor-dashboard');
+            } else {
+              router.push('/doctor-profile-setup');
+            }
+          } else if (result.data.user.role === 'PATIENT') {
             router.push('/patient-dashboard');
-          } else if (result.data.user.role === 'DOCTOR') {
-            router.push('/coming-soon?role=doctor');
-          } else if (result.data.user.role === 'ADMIN') {
-            router.push('/coming-soon?role=admin');
           } else {
-            router.push('/'); // Fallback to home
+            router.push('/coming-soon?role=admin');
           }
         } else {
           alert(result.message);
