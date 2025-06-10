@@ -16,6 +16,7 @@ const PatientDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [doctors, setDoctors] = useState([]);
   const [doctorsLoading, setDoctorsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
 
   // Load user data from localStorage on component mount
@@ -167,24 +168,52 @@ const PatientDashboard = () => {
     doctor.specialization.toLowerCase().includes(searchTerm.toLowerCase())
  );
 
-  const handleAddRecord = () => {
-    if (newRecord.date && newRecord.doctor && newRecord.diagnosis) {
-        const recordToAdd = {
-        ...newRecord,
-        userId: user.id || user.email,
-        };
-        fetch('http://localhost:5000/api/records', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(recordToAdd),
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success && data.record) {
-                setPatientHistory([...patientHistory, data.record]);
-            }
-            setShowAddRecord(false);
-            setNewRecord({
+  const handleAddRecord = async () => {
+    // Validate required fields
+    if (!newRecord.date || !newRecord.doctor || !newRecord.specialization || !newRecord.diagnosis) {
+      alert('Please fill in all required fields: Date, Doctor Name, Specialization, and Diagnosis');
+      return;
+    }
+
+    const recordToAdd = {
+      ...newRecord,
+      userId: user._id || user.id // Use _id if available, fallback to id
+    };
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Authentication token not found. Please sign in again.');
+      router.push('/signin');
+      return;
+    }
+
+    setIsSubmitting(true);
+    let retryCount = 0;
+    const maxRetries = 3;
+    const API_BASE_URL = 'http://localhost:3001'; // Define base URL
+
+    while (retryCount < maxRetries) {
+      try {
+        console.log('Attempting to connect to:', `${API_BASE_URL}/api/records`);
+        const response = await fetch(`${API_BASE_URL}/api/records`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(recordToAdd),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to add record');
+        }
+
+        const data = await response.json();
+        if (data.success && data.record) {
+          setPatientHistory([...patientHistory, data.record]);
+          setShowAddRecord(false);
+          setNewRecord({
             date: '',
             doctor: '',
             specialization: '',
@@ -192,10 +221,31 @@ const PatientDashboard = () => {
             prescription: '',
             notes: '',
             cost: ''
-            });
-        });
+          });
+          alert('Record added successfully!');
+          break; // Success, exit the retry loop
+        } else {
+          throw new Error(data.message || 'Failed to add record');
+        }
+      } catch (error) {
+        console.error(`Attempt ${retryCount + 1} failed:`, error);
+        
+        if (error.message === 'Failed to fetch') {
+          if (retryCount < maxRetries - 1) {
+            retryCount++;
+            console.log(`Retrying in 1 second... (Attempt ${retryCount + 1}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retrying
+            continue;
+          }
+          alert('Cannot connect to the server. Please check if the backend server is running on port 3001.');
+        } else {
+          alert(error.message || 'Failed to add record. Please try again.');
+          break;
+        }
+      }
     }
-    };
+    setIsSubmitting(false);
+  };
 
   const handleAddReminder = () => {
     if (newReminder.title && newReminder.date && newReminder.time) {
@@ -525,10 +575,18 @@ const PatientDashboard = () => {
                 />
               </div>
               <div className="button-group">
-                <button onClick={handleAddRecord} className="primary-button">
-                  Add Record
+                <button 
+                  onClick={handleAddRecord} 
+                  className="primary-button"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Adding Record...' : 'Add Record'}
                 </button>
-                <button onClick={() => setShowAddRecord(false)} className="secondary-button">
+                <button 
+                  onClick={() => setShowAddRecord(false)} 
+                  className="secondary-button"
+                  disabled={isSubmitting}
+                >
                   Cancel
                 </button>
               </div>
