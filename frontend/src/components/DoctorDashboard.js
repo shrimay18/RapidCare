@@ -19,7 +19,7 @@ import {
   Stethoscope
 } from 'lucide-react';
 import { useRouter } from 'next/router';
-import '../styles/DoctorDashboard.css';
+import '../styles/DoctorDashboard.module.css';
 
 const DoctorDashboard = () => {
   const router = useRouter();

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Calendar, User, LogOut, Clock, FileText, Star, MapPin, Phone, Mail, Upload, Download, Eye } from 'lucide-react';
 import { useRouter } from 'next/router';
-import '../styles/PatientDashboard.css';
+import '../styles/PatientDashboard.module.css';
 import DoctorCard from './ui/DoctorCard';
 
 
