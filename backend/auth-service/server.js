@@ -25,7 +25,8 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  credentials: true, // Allow cookies
+  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'], // Add both variations
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Device-ID', 'X-Device-Name', 'X-Device-Type', 'X-Browser', 'X-OS']
 }));
@@ -199,24 +200,24 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3001;
-let server;
-
 const startServer = async () => {
   try {
-    // Connect to database
+    // Connect to MongoDB
     await connectDB();
 
     // Start HTTP server
-    server = app.listen(PORT, () => {
-      console.log(`🚀 RapidCare Auth Service running on port ${PORT}`);
-      console.log(`📍 Environment: ${process.env.NODE_ENV}`);
-      console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-      console.log(`📚 API endpoints: http://localhost:${PORT}/api/auth`);
+    const PORT = process.env.PORT || 3001;
+    const server = app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV}`);
+      console.log(`Health check: http://localhost:${PORT}/health`);
     });
 
-    // Set timeout for requests
-    server.timeout = 30000; // 30 seconds
+    // Handle server errors
+    server.on('error', (error) => {
+      console.error('Server error:', error);
+      process.exit(1);
+    });
 
   } catch (error) {
     console.error('Failed to start server:', error);
@@ -224,9 +225,7 @@ const startServer = async () => {
   }
 };
 
-// Only start server if not in test environment
-if (process.env.NODE_ENV !== 'test') {
-  startServer();
-}
+// Start the server
+startServer();
 
 module.exports = app;

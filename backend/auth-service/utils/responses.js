@@ -7,7 +7,7 @@
  * @param {Object} data - Response data
  * @param {number} statusCode - HTTP status code (default: 200)
  */
-const successResponse = (res, message, data = null, statusCode = 200) => {
+const successResponse = (res, message, statusCode = 200, data = null) => {
   const response = {
     success: true,
     message,
@@ -166,7 +166,7 @@ const paginatedResponse = (res, message, data, pagination) => {
  * @param {Object} data - Created resource data
  */
 const createdResponse = (res, message, data) => {
-  return successResponse(res, message, data, 201);
+  return successResponse(res, message, 201, data); 
 };
 
 /**

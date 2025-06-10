@@ -1,136 +1,253 @@
-// models/User.js
+// backend/auth-service/models/User.js
+
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const { required } = require('joi');
 
 const userSchema = new mongoose.Schema({
-  // Basic Information
   name: {
     type: String,
     required: [true, 'Name is required'],
     trim: true,
-    minlength: [2, 'Name must be at least 2 characters'],
-    maxlength: [50, 'Name cannot exceed 50 characters']
+    minLength: [2, 'Name must be at least 2 characters'],
+    maxLength: [50, 'Name cannot exceed 50 characters']
   },
+  
   email: {
     type: String,
     required: [true, 'Email is required'],
     unique: true,
     lowercase: true,
     trim: true,
-    match: [
-      /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
-      'Please enter a valid email'
-    ]
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email address']
   },
+  
   mobile: {
     type: String,
-    required: [true, 'Mobile number is required'],
-    unique: true,
-    match: [
-      /^[\+]?[1-9][\d]{0,15}$/,
-      'Please enter a valid mobile number'
-    ]
+    required: false,
+    validate: {
+      validator: function(v) {
+        // Only validate if mobile is provided and not empty
+        if (v && v.trim() !== '') {
+          return /^[\+]?[1-9][\d]{0,15}$/.test(v);
+        }
+        return true; // Allow null/undefined/empty
+      },
+      message: 'Please enter a valid mobile number'
+    },
+    // Convert empty strings to undefined to work with sparse index
+    set: function(v) {
+      if (v === '' || v === null || v === undefined) {
+        return undefined; // Use undefined for sparse index
+      }
+      return v.trim();
+    }
   },
+  
   password: {
     type: String,
     required: [true, 'Password is required'],
-    minlength: [8, 'Password must be at least 8 characters'],
+    minLength: [6, 'Password must be at least 6 characters'],
     select: false // Don't include password in queries by default
   },
   
-  // Role and Status
   role: {
     type: String,
-    enum: ['PATIENT', 'DOCTOR', 'ADMIN'],
-    required: true,
-    uppercase: true
+    required: [true, 'Role is required'],
+    enum: {
+      values: ['PATIENT', 'DOCTOR', 'ADMIN'],
+      message: 'Role must be either PATIENT, DOCTOR, or ADMIN'
+    },
+    default: 'PATIENT'
   },
+  
   status: {
     type: String,
-    enum: ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING_VERIFICATION'],
-    default: 'PENDING_VERIFICATION',
-    uppercase: true
+    enum: {
+      values: ['PENDING_VERIFICATION', 'ACTIVE', 'SUSPENDED', 'INACTIVE'],
+      message: 'Invalid status value'
+    },
+    default: 'PENDING_VERIFICATION'
   },
   
-  // Verification
-  isEmailVerified: {
-    type: Boolean,
-    default: false
-  },
-  isMobileVerified: {
-    type: Boolean,
-    default: false
-  },
-  emailVerificationToken: String,
-  emailVerificationExpires: Date,
-  
-  // Profile Completion
-  profileComplete: {
+  // Email verification
+  emailVerified: {
     type: Boolean,
     default: false
   },
   
-  // Security
-  passwordChangedAt: Date,
-  passwordResetToken: String,
-  passwordResetExpires: Date,
-  loginAttempts: {
-    type: Number,
-    default: 0
-  },
-  lockUntil: Date,
-  
-  // Login Tracking
-  lastLogin: Date,
-  lastLoginIP: String,
-  loginHistory: [{
-    ip: String,
-    userAgent: String,
-    timestamp: {
-      type: Date,
-      default: Date.now
-    }
-  }],
-  
-  // Additional Fields
-  dateOfBirth: Date,
-  gender: {
+  emailVerificationOTP: {
     type: String,
-    enum: ['MALE', 'FEMALE', 'OTHER'],
-    uppercase: true
+    select: false
   },
-  profilePicture: String,
   
-  // Preferences
+  emailVerificationExpires: {
+    type: Date,
+    select: false
+  },
+  
+  // Password reset
+  passwordResetToken: {
+    type: String,
+    select: false
+  },
+  
+  passwordResetExpires: {
+    type: Date,
+    select: false
+  },
+  
+  // Profile information
+  profile: {
+    avatar: {
+      type: String, // URL to profile image
+      default: null
+    },
+    dateOfBirth: {
+      type: Date,
+      default: null
+    },
+    gender: {
+      type: String,
+      enum: ['MALE', 'FEMALE', 'OTHER'],
+      required: false
+    },
+    address: {
+      street: String,
+      city: String,
+      state: String,
+      zipCode: String,
+      country: String
+    }
+  },
+  
+  // Doctor-specific fields
+  doctorInfo: {
+    specialization: {
+      type: String,
+      default: null
+    },
+    qualifications: [{
+      degree: String,
+      institution: String,
+      year: Number
+    }],
+    experience: {
+      type: Number, // years of experience
+      default: 0
+    },
+    license: {
+      number: String,
+      issuedBy: String,
+      expiryDate: Date
+    },
+    consultationFee: {
+      type: Number,
+      default: 0
+    },
+    availableSlots: [{
+      day: {
+        type: String,
+        enum: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']
+      },
+      startTime: String, // "09:00"
+      endTime: String    // "17:00"
+    }]
+  },
+  
+  // Account settings
   preferences: {
     notifications: {
-      email: { type: Boolean, default: true },
-      sms: { type: Boolean, default: true },
-      push: { type: Boolean, default: true }
+      email: {
+        type: Boolean,
+        default: true
+      },
+      sms: {
+        type: Boolean,
+        default: false
+      },
+      push: {
+        type: Boolean,
+        default: true
+      }
     },
-    language: { type: String, default: 'en' },
-    timezone: { type: String, default: 'UTC' }
+    language: {
+      type: String,
+      default: 'en'
+    },
+    timezone: {
+      type: String,
+      default: 'UTC'
+    }
+  },
+  
+  // Tracking
+  lastLoginAt: {
+    type: Date,
+    default: null
+  },
+  
+  loginCount: {
+    type: Number,
+    default: 0
   }
-}, {
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  
+}, { 
+  timestamps: true, // Adds createdAt and updatedAt
+  toJSON: { 
+    virtuals: true,
+    transform: function(doc, ret) {
+      // Remove sensitive fields from JSON output
+      delete ret.password;
+      delete ret.emailVerificationOTP;
+      delete ret.emailVerificationExpires;
+      delete ret.passwordResetToken;
+      delete ret.passwordResetExpires;
+      delete ret.__v;
+      return ret;
+    }
+  },
+  toObject: { 
+    virtuals: true 
+  }
 });
 
-// Indexes for better query performance
-userSchema.index({ email: 1 });
-userSchema.index({ mobile: 1 });
-userSchema.index({ role: 1, status: 1 });
+// Virtual for full name (if you want to split first/last name later)
+userSchema.virtual('displayName').get(function() {
+  return this.name;
+});
+
+// Virtual for profile completion percentage
+userSchema.virtual('profileCompletion').get(function() {
+  let completion = 0;
+  const fields = ['name', 'email', 'mobile', 'profile.dateOfBirth', 'profile.gender'];
+  
+  fields.forEach(field => {
+    const value = field.includes('.') 
+      ? field.split('.').reduce((obj, key) => obj?.[key], this)
+      : this[field];
+    
+    if (value) completion += 20;
+  });
+  
+  return Math.min(completion, 100);
+});
+
+// Indexes - Create them explicitly with proper options
+userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ mobile: 1 }, { unique: true, sparse: true }); // sparse allows multiple undefined/null
+userSchema.index({ role: 1 });
+userSchema.index({ status: 1 });
+userSchema.index({ emailVerified: 1 });
 userSchema.index({ createdAt: -1 });
 
-// Virtual for account lock status
-userSchema.virtual('isLocked').get(function() {
-  return !!(this.lockUntil && this.lockUntil > Date.now());
-});
+// For doctors - compound indexes for searching
+userSchema.index({ 'doctorInfo.specialization': 1, 'status': 1 });
+userSchema.index({ 'doctorInfo.consultationFee': 1 });
 
-// Hash password before saving
+// Pre-save middleware to hash password
 userSchema.pre('save', async function(next) {
-  // Only hash password if it's modified
+  // Only hash the password if it has been modified (or is new)
   if (!this.isModified('password')) return next();
   
   try {
@@ -143,14 +260,6 @@ userSchema.pre('save', async function(next) {
   }
 });
 
-// Update passwordChangedAt field
-userSchema.pre('save', function(next) {
-  if (!this.isModified('password') || this.isNew) return next();
-  
-  this.passwordChangedAt = Date.now() - 1000; // Subtract 1 second to ensure token is created after password change
-  next();
-});
-
 // Instance method to check password
 userSchema.methods.comparePassword = async function(candidatePassword) {
   try {
@@ -160,89 +269,66 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
   }
 };
 
-// Instance method to check if password was changed after JWT was issued
-userSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
-  if (this.passwordChangedAt) {
-    const changedTimestamp = parseInt(this.passwordChangedAt.getTime() / 1000, 10);
-    return JWTTimestamp < changedTimestamp;
-  }
-  return false;
+// Instance method to generate email verification OTP
+userSchema.methods.generateEmailVerificationOTP = function() {
+  // Generate 6-digit OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  
+  // Set OTP and expiration (10 minutes from now)
+  this.emailVerificationOTP = otp;
+  this.emailVerificationExpires = new Date(Date.now() + 10 * 60 * 1000);
+  
+  return otp;
 };
 
-// Instance method to increment login attempts
-userSchema.methods.incrementLoginAttempts = async function() {
-  // If we have a previous lock that has expired, restart at 1
-  if (this.lockUntil && this.lockUntil < Date.now()) {
-    return this.updateOne({
-      $unset: { lockUntil: 1 },
-      $set: { loginAttempts: 1 }
-    });
-  }
-  
-  const updates = { $inc: { loginAttempts: 1 } };
-  
-  // If we've reached max attempts and it's not locked already, lock the account
-  if (this.loginAttempts + 1 >= 5 && !this.isLocked) {
-    updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 }; // Lock for 2 hours
-  }
-  
-  return this.updateOne(updates);
+// Instance method to verify email OTP
+userSchema.methods.verifyEmailOTP = function(otp) {
+  return (
+    this.emailVerificationOTP === otp &&
+    this.emailVerificationExpires &&
+    this.emailVerificationExpires > new Date()
+  );
 };
 
-// Instance method to reset login attempts
-userSchema.methods.resetLoginAttempts = async function() {
-  return this.updateOne({
-    $unset: { loginAttempts: 1, lockUntil: 1 }
+// Instance method to generate password reset token
+userSchema.methods.generatePasswordResetToken = function() {
+  const crypto = require('crypto');
+  
+  // Generate token
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  
+  // Hash token and set to passwordResetToken field
+  this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+  
+  // Set expire time (10 minutes)
+  this.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000);
+  
+  // Return original token (not hashed)
+  return resetToken;
+};
+
+// Static method to find user by email (including password)
+userSchema.statics.findByEmailWithPassword = function(email) {
+  return this.findOne({ email }).select('+password');
+};
+
+// Static method to find active doctors
+userSchema.statics.findActiveDoctors = function() {
+  return this.find({ 
+    role: 'DOCTOR', 
+    status: 'ACTIVE',
+    emailVerified: true 
   });
 };
 
-// Instance method to update login info
-userSchema.methods.updateLoginInfo = async function(ip, userAgent) {
-  const loginInfo = {
-    ip,
-    userAgent,
-    timestamp: new Date()
-  };
-  
-  return this.updateOne({
-    $set: {
-      lastLogin: new Date(),
-      lastLoginIP: ip
-    },
-    $push: {
-      loginHistory: {
-        $each: [loginInfo],
-        $slice: -10 // Keep only last 10 login records
-      }
-    }
+// Static method to find doctors by specialization
+userSchema.statics.findDoctorsBySpecialization = function(specialization) {
+  return this.find({ 
+    role: 'DOCTOR', 
+    status: 'ACTIVE',
+    emailVerified: true,
+    'doctorInfo.specialization': specialization 
   });
-};
-
-// Static method to find user by email or mobile
-userSchema.statics.findByEmailOrMobile = function(identifier) {
-  return this.findOne({
-    $or: [
-      { email: identifier.toLowerCase() },
-      { mobile: identifier }
-    ]
-  });
-};
-
-// Static method to get users by role
-userSchema.statics.getUsersByRole = function(role) {
-  return this.find({ role: role.toUpperCase() });
-};
-
-// Remove sensitive data from JSON output
-userSchema.methods.toJSON = function() {
-  const userObject = this.toObject();
-  delete userObject.password;
-  delete userObject.passwordResetToken;
-  delete userObject.passwordResetExpires;
-  delete userObject.emailVerificationToken;
-  delete userObject.loginAttempts;
-  delete userObject.lockUntil;
-  return userObject;
 };
 
 module.exports = mongoose.model('User', userSchema);

@@ -20,9 +20,10 @@ class AuthController {
       const { name, email, mobile, password, role } = req.body;
 
       // Check if user already exists
-      const existingUser = await User.findByEmailOrMobile(email);
+      const existingUser = await User.findOne({ email });
+
       if (existingUser) {
-        return errorResponse(res, 'User already exists with this email or mobile', 400);
+        return errorResponse(res, 'User already exists with this email', 400);
       }
 
       // Create new user
@@ -34,11 +35,15 @@ class AuthController {
         role
       });
 
-      // Generate OTP for email verification
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      user.emailVerificationToken = otp;
-      user.emailVerificationExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+      // Generate OTP for email verification using the model method
+      const otp = user.generateEmailVerificationOTP();
       await user.save();
+
+      console.log('✅ OTP generated and saved:', {
+        otp: otp,
+        emailVerificationOTP: user.emailVerificationOTP,
+        emailVerificationExpires: user.emailVerificationExpires
+      });
 
       // Send verification email
       await emailService.sendOTPEmail(email, otp, name, 'verification');
@@ -48,8 +53,8 @@ class AuthController {
 
       return successResponse(res, 'Registration successful', 201, {
         user: user.toJSON(),
-        accessToken
-      });
+        token: accessToken
+      });  
     } catch (error) {
       console.error('Registration error:', error);
       return errorResponse(res, 'Registration failed', 500);
@@ -59,43 +64,75 @@ class AuthController {
   // Verify email with OTP
   async verifyEmail(req, res) {
     try {
+      console.log('🔍 Verifying email with OTP:', req.body);
+      
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        console.log('❌ Validation errors:', errors.array());
         return errorResponse(res, 'Validation failed', 400, { errors: errors.array() });
       }
-
+      
+      console.log('✅ Validation passed');
       const { email, otp } = req.body;
+      console.log('📧 Email:', email);
+      console.log('🔢 OTP received:', otp, 'Type:', typeof otp);
 
-      const user = await User.findOne({ email });
+      const user = await User.findOne({ email }).select('+emailVerificationOTP +emailVerificationExpires');
       if (!user) {
+        console.log('❌ User not found for email:', email);
         return errorResponse(res, 'User not found', 404);
       }
+      
+      console.log('✅ User found:', {
+        id: user._id,
+        email: user.email,
+        emailVerified: user.emailVerified,
+        emailVerificationOTP: user.emailVerificationOTP,
+        emailVerificationExpires: user.emailVerificationExpires,
+        expiresDate: new Date(user.emailVerificationExpires),
+        currentDate: new Date()
+      });
 
-      if (user.isEmailVerified) {
+      if (user.emailVerified) {
+        console.log('❌ Email already verified');
         return errorResponse(res, 'Email already verified', 400);
       }
 
-      if (user.emailVerificationToken !== otp) {
-        return errorResponse(res, 'Invalid OTP', 400);
-      }
+      // Use the model method to verify OTP
+      const isOTPValid = user.verifyEmailOTP(otp);
+      
+      console.log('🔢 OTP Verification:', {
+        storedOTP: user.emailVerificationOTP,
+        receivedOTP: otp,
+        expiresAt: user.emailVerificationExpires,
+        currentTime: new Date(),
+        isValid: isOTPValid
+      });
 
-      if (user.emailVerificationExpires < Date.now()) {
-        return errorResponse(res, 'OTP expired', 400);
+      if (!isOTPValid) {
+        console.log('❌ Invalid or expired OTP');
+        return errorResponse(res, 'Invalid or expired OTP', 400);
       }
+      
+      console.log('✅ OTP is valid and not expired');
 
       // Update user verification status
-      user.isEmailVerified = true;
+      user.emailVerified = true;
       user.status = 'ACTIVE';
-      user.emailVerificationToken = undefined;
+      user.emailVerificationOTP = undefined;
       user.emailVerificationExpires = undefined;
       await user.save();
+      console.log('✅ User verification status updated');
 
       // Send welcome email
       await emailService.sendWelcomeEmail(email, user.name, user.role);
-
-      return successResponse(res, 'Email verified successfully');
+      console.log('✅ Welcome email sent');
+      
+      return successResponse(res, 'Email verified successfully', 200, {
+        user: user.toJSON()
+      });
     } catch (error) {
-      console.error('Email verification error:', error);
+      console.error('❌ Email verification error:', error);
       return errorResponse(res, 'Email verification failed', 500);
     }
   }
@@ -124,22 +161,20 @@ class AuthController {
       // Check password
       const isPasswordValid = await user.comparePassword(password);
       if (!isPasswordValid) {
-        await user.incrementLoginAttempts();
         return errorResponse(res, 'Invalid credentials', 401);
       }
 
-      // Reset login attempts
-      await user.resetLoginAttempts();
-
       // Update login info
-      await user.updateLoginInfo(req.ip, req.headers['user-agent']);
+      user.lastLoginAt = new Date();
+      user.loginCount = (user.loginCount || 0) + 1;
+      await user.save();
 
       // Generate tokens
       const accessToken = tokenService.generateAccessToken(user);
 
       return successResponse(res, 'Login successful', 200, {
         user: user.toJSON(),
-        accessToken
+        token: accessToken
       });
     } catch (error) {
       console.error('Login error:', error);
@@ -190,14 +225,12 @@ class AuthController {
         return errorResponse(res, 'User not found', 404);
       }
 
-      if (user.isEmailVerified) {
+      if (user.emailVerified) {
         return errorResponse(res, 'Email already verified', 400);
       }
 
-      // Generate new OTP
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      user.emailVerificationToken = otp;
-      user.emailVerificationExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+      // Generate new OTP using the model method
+      const otp = user.generateEmailVerificationOTP();
       await user.save();
 
       // Send verification email
@@ -262,7 +295,7 @@ class AuthController {
   async getSessions(req, res) {
     try {
       return successResponse(res, 'Sessions retrieved successfully', 200, {
-        sessions: req.user.loginHistory
+        sessions: req.user.loginHistory || []
       });
     } catch (error) {
       console.error('Get sessions error:', error);
@@ -394,6 +427,83 @@ class AuthController {
     } catch (error) {
       console.error('Update user status error:', error);
       return errorResponse(res, 'Failed to update user status', 500);
+    }
+  }
+
+  // Forgot password - send reset token
+  async forgotPassword(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return errorResponse(res, 'Validation failed', 400, { errors: errors.array() });
+      }
+
+      const { email } = req.body;
+
+      const user = await User.findOne({ email });
+      if (!user) {
+        // Don't reveal if user exists or not for security
+        return successResponse(res, 'If an account with that email exists, we have sent a password reset link');
+      }
+
+      // Generate reset token
+      const resetToken = user.generatePasswordResetToken();
+      await user.save();
+
+      // Send password reset email
+      await emailService.sendPasswordResetEmail(email, user.name, resetToken);
+
+      return successResponse(res, 'Password reset email sent successfully');
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      return errorResponse(res, 'Failed to send password reset email', 500);
+    }
+  }
+
+  // Reset password with token
+  async resetPassword(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return errorResponse(res, 'Validation failed', 400, { errors: errors.array() });
+      }
+
+      const { token, newPassword } = req.body;
+
+      // Hash the token to compare with stored version
+      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+      const user = await User.findOne({
+        passwordResetToken: hashedToken,
+        passwordResetExpires: { $gt: Date.now() }
+      }).select('+passwordResetToken +passwordResetExpires');
+
+      if (!user) {
+        return errorResponse(res, 'Invalid or expired reset token', 400);
+      }
+
+      // Update password and clear reset token
+      user.password = newPassword;
+      user.passwordResetToken = undefined;
+      user.passwordResetExpires = undefined;
+      await user.save();
+
+      // Send confirmation email
+      await emailService.sendSecurityAlertEmail(
+        user.email,
+        user.name,
+        'Password Reset Successful',
+        {
+          timestamp: new Date(),
+          ip: req.ip,
+          userAgent: req.headers['user-agent']
+        }
+      );
+
+      return successResponse(res, 'Password reset successful');
+    } catch (error) {
+      console.error('Reset password error:', error);
+      return errorResponse(res, 'Failed to reset password', 500);
     }
   }
 }

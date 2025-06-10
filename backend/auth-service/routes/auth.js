@@ -21,9 +21,10 @@ const registerValidation = [
     .normalizeEmail()
     .withMessage('Please provide a valid email'),
   
-  body('mobile')
-    .isMobilePhone()
-    .withMessage('Please provide a valid mobile number'),
+//   body('mobile')
+//     .optional() 
+//     .isMobilePhone()
+//     .withMessage('Please provide a valid mobile number'),
   
   body('password')
     .isLength({ min: 8 })
@@ -95,11 +96,7 @@ router.post('/verify-email',
 );
 
 // Login user
-router.post('/login',
-  rateLimiter.login,
-  loginValidation,
-  authController.login
-);
+router.post('/signin', rateLimiter.login, loginValidation, authController.login);
 
 // Refresh access token
 router.post('/refresh-token',

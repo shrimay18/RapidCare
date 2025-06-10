@@ -261,6 +261,37 @@
   color: #1d4ed8;
 }
 
+.resendOTP {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.resendBtn {
+  color: #2563eb;
+  font-size: 0.875rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.resendBtn:hover {
+  color: #1d4ed8;
+}
+
+.resendBtn:disabled {
+  color: #9ca3af;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.submitBtn:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 412px) {
   .backBtn {
