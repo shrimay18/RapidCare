@@ -1,28 +1,30 @@
-
 import React, { useState, useEffect } from 'react';
 
-const Notification = ({ 
-  message, 
-  type = 'success', 
-  isVisible, 
-  onClose, 
+const Notification = ({
+  message,
+  type = 'success',
+  isVisible,
+  onClose,
   duration = 5000,
-  position = 'top-right' 
+  position = 'top-right'
 }) => {
   const [isShowing, setIsShowing] = useState(false);
 
   useEffect(() => {
     if (isVisible) {
       setIsShowing(true);
-      
+
       // Auto-close after duration
       const timer = setTimeout(() => {
         handleClose();
       }, duration);
 
       return () => clearTimeout(timer);
+    } else {
+      setIsShowing(false);
     }
-  }, [isVisible, duration]);
+    // Reset animation when message changes
+  }, [isVisible, message, duration]);
 
   const handleClose = () => {
     setIsShowing(false);
@@ -101,8 +103,8 @@ const Notification = ({
   return (
     <div
       className={`fixed z-50 ${getPositionStyles()} transition-all duration-300 ease-in-out ${
-        isShowing 
-          ? 'opacity-100 translate-y-0 scale-100' 
+        isShowing
+          ? 'opacity-100 translate-y-0 scale-100'
           : 'opacity-0 -translate-y-2 scale-95'
       }`}
     >
@@ -116,12 +118,12 @@ const Notification = ({
         <div className="flex-shrink-0">
           {getIcon()}
         </div>
-        
+
         {/* Message */}
         <div className="flex-1 text-sm font-medium">
           {message}
         </div>
-        
+
         {/* Close Button */}
         <button
           onClick={handleClose}

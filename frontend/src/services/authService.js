@@ -87,7 +87,7 @@ export const authService = {
     }
   },
 
-  // NEW: Email verification function
+  // FIXED: Email verification function - NO MORE THROWING ERRORS
   verifyEmail: async (email, otp) => {
     try {
       console.log('🔍 Sending email verification request:', { email, otp });
@@ -97,6 +97,8 @@ export const authService = {
         otp
       });
       
+      console.log('✅ Verification successful:', response.data);
+      
       return {
         success: true,
         data: response.data.data,
@@ -105,11 +107,40 @@ export const authService = {
     } catch (error) {
       console.error('❌ Email verification error:', error);
       
+      // CRITICAL: Return structured response instead of throwing
       let errorMessage = 'Email verification failed. Please try again.';
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
+      
+      if (error.response) {
+        console.log('Error response status:', error.response.status);
+        console.log('Error response data:', error.response.data);
+        
+        if (error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else {
+          // Handle different status codes
+          switch (error.response.status) {
+            case 400:
+              errorMessage = 'Invalid verification code. Please check and try again.';
+              break;
+            case 404:
+              errorMessage = 'User not found. Please register again.';
+              break;
+            case 500:
+              errorMessage = 'Server error. Please try again later.';
+              break;
+            default:
+              errorMessage = 'Verification failed. Please try again.';
+          }
+        }
+      } else if (error.request) {
+        console.log('No response received:', error.request);
+        errorMessage = 'No response from server. Please check your connection.';
+      } else {
+        console.log('Request setup error:', error.message);
+        errorMessage = 'Request failed. Please try again.';
       }
       
+      // RETURN instead of THROW
       return {
         success: false,
         message: errorMessage
@@ -117,7 +148,7 @@ export const authService = {
     }
   },
 
-  // NEW: Resend verification OTP function
+  // FIXED: Resend verification OTP function - NO MORE THROWING ERRORS
   resendVerificationOTP: async (email) => {
     try {
       console.log('🔍 Sending resend OTP request for email:', email);
@@ -125,6 +156,8 @@ export const authService = {
       const response = await api.post('/api/auth/resend-verification', {
         email
       });
+      
+      console.log('✅ Resend OTP successful:', response.data);
       
       return {
         success: true,
@@ -135,10 +168,26 @@ export const authService = {
       console.error('❌ Resend OTP error:', error);
       
       let errorMessage = 'Failed to resend verification code. Please try again.';
-      if (error.response?.data?.message) {
+      
+      if (error.response && error.response.data && error.response.data.message) {
         errorMessage = error.response.data.message;
+      } else if (error.response) {
+        switch (error.response.status) {
+          case 400:
+            errorMessage = 'Invalid request. Please try again.';
+            break;
+          case 404:
+            errorMessage = 'User not found. Please register again.';
+            break;
+          case 500:
+            errorMessage = 'Server error. Please try again later.';
+            break;
+          default:
+            errorMessage = 'Failed to resend verification code.';
+        }
       }
       
+      // RETURN instead of THROW
       return {
         success: false,
         message: errorMessage

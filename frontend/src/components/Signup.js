@@ -5,7 +5,6 @@ import styles from '@/styles/Signup.module.css';
 import authService from '../services/authService';
 import { useNotification } from '@/contexts/NotificationContext';
 
-
 export default function Signup() {
   const { showSuccess, showError } = useNotification();
   const router = useRouter();
@@ -191,52 +190,137 @@ export default function Signup() {
     }
   };
 
+  // Enhanced handleVerifyEmail with proper error handling
   const handleVerifyEmail = async (e) => {
     e.preventDefault();
+    
+    if (!verificationData.otp.trim()) {
+      showError('Please enter the verification code');
+      return;
+    }
+
+    if (verificationData.otp.length !== 6) {
+      showError('Verification code must be 6 digits');
+      return;
+    }
+
     setIsLoading(true);
+
     try {
+      console.log('🔍 Attempting email verification...', {
+        email: verificationData.email,
+        otp: verificationData.otp
+      });
+
       const result = await authService.verifyEmail(
-        verificationData.email,
+        verificationData.email, 
         verificationData.otp
       );
 
+      console.log('✅ Verification result:', result);
+
       if (result.success) {
-        showSuccess('Email verified successfully! Welcome to RapidCare.');
+        showSuccess('Email verified successfully! Redirecting...');
         
-        // Get user data to determine role
-        const user = result.data.user || authService.getCurrentUser();
-        const userRole = user?.role || localStorage.getItem('pendingUserRole') || 'PATIENT';
+        // Clear verification data
+        setVerificationData({ email: '', otp: '' });
+        setShowVerification(false);
+        
+        // Get user role for redirect
+        const userRole = result.data?.user?.role || localStorage.getItem('pendingUserRole') || 'PATIENT';
         
         // Clear pending role from localStorage
         localStorage.removeItem('pendingUserRole');
         
-        // Role-based redirection after verification
-        redirectBasedOnRole(userRole);
-        
+        // Redirect based on role
+        setTimeout(() => {
+          switch (userRole.toLowerCase()) {
+            case 'doctor':
+              router.push('/doctor/dashboard');
+              break;
+            case 'patient':
+              router.push('/patient/dashboard');
+              break;
+            case 'admin':
+              router.push('/admin/dashboard');
+              break;
+            default:
+              router.push('/patient/dashboard');
+          }
+        }, 1500);
       } else {
-        showError(result.message || 'Verification failed. Please try again.');
+        // Handle unsuccessful verification
+        console.log('❌ Verification failed:', result.message);
+        showError(result.message || 'Email verification failed. Please try again.');
       }
     } catch (error) {
-      console.error('Email verification error:', error);
-      showError('Verification failed. Please check your OTP and try again.');
+      console.error('❌ Verification error:', error);
+      
+      // Handle different types of errors gracefully
+      let errorMessage = 'Email verification failed. Please try again.';
+      
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.log('Error status:', error.response.status);
+        console.log('Error data:', error.response.data);
+        
+        if (error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.status === 400) {
+          errorMessage = 'Invalid verification code. Please check and try again.';
+        } else if (error.response.status === 404) {
+          errorMessage = 'User not found. Please register again.';
+        } else if (error.response.status === 500) {
+          errorMessage = 'Server error. Please try again later.';
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.log('No response received:', error.request);
+        errorMessage = 'No response from server. Please check your connection.';
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.log('Request setup error:', error.message);
+        errorMessage = 'Request failed. Please try again.';
+      }
+      
+      showError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Enhanced handleResendOTP with proper error handling
   const handleResendOTP = async () => {
+    if (!verificationData.email) {
+      showError('Email address not found. Please register again.');
+      return;
+    }
+
     setIsLoading(true);
+
     try {
+      console.log('🔄 Resending OTP to:', verificationData.email);
+      
       const result = await authService.resendVerificationOTP(verificationData.email);
       
       if (result.success) {
-        showSuccess('Verification code sent to your email.');
+        showSuccess('Verification code sent successfully! Please check your email.');
+        // Clear current OTP input
+        setVerificationData(prev => ({ ...prev, otp: '' }));
       } else {
-        showError(result.message || 'Failed to resend verification code.');
+        showError(result.message || 'Failed to resend verification code. Please try again.');
       }
     } catch (error) {
-      console.error('Resend OTP error:', error);
-      showError('Failed to resend verification code. Please try again.');
+      console.error('❌ Resend OTP error:', error);
+      
+      let errorMessage = 'Failed to resend verification code. Please try again.';
+      
+      if (error.response && error.response.data && error.response.data.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      showError(errorMessage);
     } finally {
       setIsLoading(false);
     }

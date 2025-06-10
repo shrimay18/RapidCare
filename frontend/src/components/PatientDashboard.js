@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Search, Plus, Calendar, User, LogOut, Clock, FileText, Star, MapPin, Phone, Mail, Upload, Download, Eye } from 'lucide-react';
 import { useRouter } from 'next/router';
 import '../styles/PatientDashboard.css';
+import DoctorCard from './ui/DoctorCard';
+
 
 const PatientDashboard = () => {
   const router = useRouter();
@@ -12,6 +14,9 @@ const PatientDashboard = () => {
   const [showAddReport, setShowAddReport] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [doctors, setDoctors] = useState([]);
+  const [doctorsLoading, setDoctorsLoading] = useState(false);
+
 
   // Load user data from localStorage on component mount
   useEffect(() => {
@@ -65,45 +70,22 @@ const PatientDashboard = () => {
   ]);
 
   // Dummy doctors data
-  const [doctors] = useState([
-    {
-      id: 1,
-      name: 'Dr. Sarah Wilson',
-      specialization: 'Cardiologist',
-      experience: '12 years',
-      price: '$150',
-      rating: 4.8,
-      location: 'Downtown Medical Center',
-      phone: '+1 (555) 123-4567',
-      email: 'sarah.wilson@rapidcare.com',
-      image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&h=150&fit=crop&crop=face'
-    },
-    {
-      id: 2,
-      name: 'Dr. Michael Chen',
-      specialization: 'General Physician',
-      experience: '8 years',
-      price: '$100',
-      rating: 4.6,
-      location: 'Westside Clinic',
-      phone: '+1 (555) 234-5678',
-      email: 'michael.chen@rapidcare.com',
-      image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150&h=150&fit=crop&crop=face'
-    },
-    {
-      id: 3,
-      name: 'Dr. Emily Rodriguez',
-      specialization: 'Dermatologist',
-      experience: '10 years',
-      price: '$130',
-      rating: 4.9,
-      location: 'Skin Care Specialists',
-      phone: '+1 (555) 345-6789',
-      email: 'emily.rodriguez@rapidcare.com',
-      image: 'https://images.unsplash.com/photo-1594824919066-d8cd56cb1e89?w=150&h=150&fit=crop&crop=face'
-    }
-  ]);
-
+  useEffect(() => {
+  if (activeTab === 'doctors') {
+    setDoctorsLoading(true);
+    fetch('http://localhost:5000/api/doctors')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data && Array.isArray(data.data.doctors)) {
+          setDoctors(data.data.doctors);
+        } else {
+          setDoctors([]);
+        }
+      })
+      .catch(() => setDoctors([]))
+      .finally(() => setDoctorsLoading(false));
+  }
+}, [activeTab]);
   // Reports data
   const [reports, setReports] = useState([
     {
@@ -183,26 +165,37 @@ const PatientDashboard = () => {
   const filteredDoctors = doctors.filter(doctor =>
     doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     doctor.specialization.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+ );
 
   const handleAddRecord = () => {
     if (newRecord.date && newRecord.doctor && newRecord.diagnosis) {
-      setPatientHistory([...patientHistory, { 
-        id: Date.now(), 
-        ...newRecord 
-      }]);
-      setNewRecord({
-        date: '',
-        doctor: '',
-        specialization: '',
-        diagnosis: '',
-        prescription: '',
-        notes: '',
-        cost: ''
-      });
-      setShowAddRecord(false);
+        const recordToAdd = {
+        ...newRecord,
+        userId: user.id || user.email,
+        };
+        fetch('http://localhost:5000/api/records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(recordToAdd),
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.record) {
+                setPatientHistory([...patientHistory, data.record]);
+            }
+            setShowAddRecord(false);
+            setNewRecord({
+            date: '',
+            doctor: '',
+            specialization: '',
+            diagnosis: '',
+            prescription: '',
+            notes: '',
+            cost: ''
+            });
+        });
     }
-  };
+    };
 
   const handleAddReminder = () => {
     if (newReminder.title && newReminder.date && newReminder.time) {
@@ -361,59 +354,30 @@ const PatientDashboard = () => {
 
             {/* Find Doctors Tab */}
             {activeTab === 'doctors' && (
-              <div>
+            <div>
                 <div className="mb-4">
-                  <h3 className="section-title mb-4">Find Doctors</h3>
-                  <div className="search-container">
+                <h3 className="section-title mb-4">Find Doctors</h3>
+                <div className="search-container">
                     <Search className="search-icon" size={20} />
                     <input
-                      type="text"
-                      placeholder="Search by name or specialization..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="search-input"
+                    type="text"
+                    placeholder="Search by name or specialization..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="search-input"
                     />
-                  </div>
                 </div>
-
+                </div>
+                {doctorsLoading ? (
+                <div>Loading doctors...</div>
+                ) : (
                 <div className="grid grid-cols-3">
-                  {filteredDoctors.map((doctor) => (
-                    <div key={doctor.id} className="doctor-card">
-                      <div className="doctor-header">
-                        <img src={doctor.image} alt={doctor.name} className="doctor-image" />
-                        <div className="doctor-info">
-                          <h4 className="doctor-name">{doctor.name}</h4>
-                          <p className="doctor-specialty">{doctor.specialization}</p>
-                          <div className="rating">
-                            <Star size={16} style={{color: '#fbbf24', fill: '#fbbf24'}} />
-                            <span>{doctor.rating}</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="doctor-details">
-                        <div className="detail-row">
-                          <Clock size={16} />
-                          <span>{doctor.experience} experience</span>
-                        </div>
-                        <div className="detail-row">
-                          <MapPin size={16} />
-                          <span>{doctor.location}</span>
-                        </div>
-                        <div className="detail-row">
-                          <Phone size={16} />
-                          <span>{doctor.phone}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="doctor-footer">
-                        <span className="price">{doctor.price}</span>
-                        <button className="book-button">Book Appointment</button>
-                      </div>
-                    </div>
-                  ))}
+                    {filteredDoctors.map((doctor) => (
+                    <DoctorCard key={doctor.id} doctor={doctor} />
+                    ))}
                 </div>
-              </div>
+                )}
+            </div>
             )}
 
             {/* Reports Tab */}

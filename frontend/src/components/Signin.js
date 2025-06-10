@@ -109,11 +109,11 @@ export default function Signin() {
         router.push('/doctor-dashboard');
         break;
       case 'ADMIN':
-        router.push('/admin/dashboard');
+        router.push('/admin-dashboard');
         break;
       case 'PATIENT':
       default:
-        router.push('/patient/dashboard');
+        router.push('/patient-dashboard');
         break;
     }
   };
@@ -189,16 +189,16 @@ export default function Signin() {
       if (result.success) {
         showSuccess('Email verified successfully! Welcome to RapidCare.');
         setShowVerification(false);
-        
+
         // Get updated user data
         const user = result.data.user || authService.getCurrentUser();
-        
+
         if (user) {
           // Update user data in localStorage
           user.emailVerified = true;
           user.status = 'ACTIVE';
           authService.updateUserData(user);
-          
+
           // Role-based redirection after verification
           redirectBasedOnRole(user);
         } else {
@@ -206,11 +206,16 @@ export default function Signin() {
           router.push('/patient/dashboard');
         }
       } else {
+        // Show notification for wrong OTP or other errors
         showError(result.message || 'Verification failed. Please try again.');
       }
     } catch (error) {
-      console.error('Email verification error:', error);
-      showError('Verification failed. Please check your OTP and try again.');
+      // Always show a notification for any error
+      showError(
+        error?.response?.data?.message ||
+        error?.message ||
+        'Verification failed. Please check your OTP and try again.'
+      );
     } finally {
       setIsLoading(false);
     }
